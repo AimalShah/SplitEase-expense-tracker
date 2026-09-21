@@ -5,111 +5,13 @@ import {
   CardContent,
   Badge,
   IconButton,
-  Button,
 } from "@/components/ui";
-import { useExpenseReactions } from "@/hooks/useReactions";
-import {
-  useAddExpenseReaction,
-  useRemoveExpenseReaction,
-} from "@/hooks/mutations";
 import { Pencil, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import type { Expense, ReactionType } from "@/types";
+import { formatCurrency, formatDate, getSplitLabel } from "@/lib/selectors";
+import { ExpenseReactions } from "./ExpenseReactions";
+import type { Expense } from "@/types";
 
-const REACTION_OPTIONS: ReactionType[] = ["👍", "😂", "😮", "❤️", "😢"];
-
-interface ExpenseReactionsProps {
-  expenseId: string;
-  currentUserId?: string;
-  compact?: boolean;
-}
-
-function ExpenseReactions({
-  expenseId,
-  currentUserId,
-  compact = false,
-}: ExpenseReactionsProps) {
-  const { data: reactions = [] } = useExpenseReactions(expenseId);
-  const addReaction = useAddExpenseReaction();
-  const removeReaction = useRemoveExpenseReaction();
-
-  const myReaction = reactions.find((r) => r.user_id === currentUserId);
-  const busy = addReaction.isPending || removeReaction.isPending;
-
-  const handleReaction = (reaction: ReactionType) => {
-    if (busy) return;
-    if (!myReaction) {
-      addReaction.mutate({ expenseId, reaction });
-    } else if (myReaction.reaction === reaction) {
-      removeReaction.mutate(expenseId);
-    } else {
-      removeReaction.mutate(expenseId, {
-        onSuccess: () => addReaction.mutate({ expenseId, reaction }),
-      });
-    }
-  };
-
-  return (
-    <div
-      className={
-        compact
-          ? "flex flex-wrap items-center gap-1"
-          : "mt-3 flex flex-wrap items-center gap-1 border-t border-border-default pt-3"
-      }
-      aria-label="Add a reaction"
-    >
-      {REACTION_OPTIONS.map((reaction) => {
-        const count = reactions.filter((r) => r.reaction === reaction).length;
-        const active = myReaction?.reaction === reaction;
-        return (
-          <Button
-            key={reaction}
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => handleReaction(reaction)}
-            className={cn("gap-1", active && "bg-primary-100 text-primary-600")}
-            aria-pressed={active}
-          >
-            <span aria-hidden="true">{reaction}</span>
-            {count > 0 && <span className="text-xs">{count}</span>}
-          </Button>
-        );
-      })}
-    </div>
-  );
-}
-
-function formatCurrency(amount: string): string {
-  const value = Number(amount);
-  if (Number.isNaN(value)) return amount;
-  return value.toLocaleString(undefined, {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function getSplitLabel(expense: Expense): string {
-  const participantNames = expense.splits
-    .map((s) => s.user.name)
-    .filter(Boolean);
-  return participantNames.length
-    ? participantNames.join(", ")
-    : `${expense.splits.length} participant${expense.splits.length === 1 ? "" : "s"}`;
-}
+export { ExpenseReactions };
 
 interface ExpenseCardProps {
   expense: Expense;
@@ -191,10 +93,8 @@ export function ExpenseTableRow({
           {expense.description || "Untitled expense"}
         </p>
       </td>
-      <td className="px-4 py-3">
-        <span className="whitespace-nowrap text-sm text-text-secondary">
-          {expense.payer?.name ?? "Unknown"}
-        </span>
+      <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-text-primary num-tabular">
+        {formatCurrency(expense.amount)}
       </td>
       <td className="whitespace-nowrap px-4 py-3 text-sm text-text-secondary">
         {expense.payer?.name ?? "Unknown"}

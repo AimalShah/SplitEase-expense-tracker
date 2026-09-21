@@ -5,26 +5,38 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { ArrowRight, BadgeCheck, ShieldCheck } from "lucide-react";
 import { loginSchema, type LoginFormData } from "@/lib/validation/authSchemas";
 import { authApi } from "@/services";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
+import { AuthHeader } from "@/components/auth/AuthHeader";
+import { AuthFooter, FooterLink } from "@/components/auth/AuthFooter";
+import { DotPattern } from "@/components/auth/DotPattern";
+import { PasswordField } from "@/components/auth/PasswordField";
+import { Checkbox } from "@/components/auth/Checkbox";
 import SocialLogin from "@/components/auth/SocialLogin";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/primitives/accordion";
-import { Button } from "@/components/ui/primitives/button";
-import { Input } from "@/components/ui/primitives/input";
-import { Label } from "@/components/ui/primitives/label";
+import { WorkspacePreview } from "@/components/auth/WorkspacePreview";
+import { Button, Input } from "@/components/ui";
+import { useShake } from "@/hooks/useShake";
+
+function LiveSyncPill() {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400">
+      <span className="relative flex size-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+      </span>
+      v2.4 Live Sync
+    </span>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
+  const { shake } = useShake();
 
   const {
     register,
@@ -50,148 +62,158 @@ export default function LoginPage() {
         const message =
           err instanceof Error ? err.message : "Login failed. Please try again.";
         setServerError(message);
+        shake();
       }
     },
-    [queryClient, router]
+    [queryClient, router, shake]
   );
 
   return (
     <>
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-lg lg:text-xl mb-4">Welcome back</h1>
-        <p className="font-sans text-sm text-[#878787]">
-          Sign in to continue to SplitEase
-        </p>
-      </div>
-
-      {/* Sign In Options */}
-      <div className="space-y-3 flex items-center justify-center w-full">
-        <SocialLogin />
-      </div>
-
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-background font-sans text-[#878787]">
-            or
-          </span>
-        </div>
-      </div>
-
-      {/* More Options Accordion */}
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1" className="border-0">
-          <AccordionTrigger className="w-full bg-[#0e0e0e] border border-[#0e0e0e] text-white font-sans text-sm h-11 px-4 hover:bg-[#1a1a1a] dark:bg-[#131313] dark:border-border dark:text-foreground dark:hover:bg-border/50 transition-colors rounded-lg flex items-center justify-center hover:no-underline [&_svg]:hidden">
-            <span className="text-white dark:text-foreground">
-              Show other options
+      <AuthHeader
+        right={
+          <>
+            <Link
+              href="/help"
+              className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:block"
+            >
+              Help Center
+            </Link>
+            <span className="hidden h-4 w-px bg-border sm:block" />
+            <span className="hidden text-sm text-muted-foreground lg:block">
+              Need an account?
             </span>
-          </AccordionTrigger>
-          <AccordionContent className="pt-4">
+            <Button
+              size="sm"
+              className="rounded-lg"
+              onClick={() => router.push("/signup")}
+            >
+              Create account
+            </Button>
+          </>
+        }
+      />
+
+      <main className="flex flex-1 flex-col lg:flex-row">
+        <section className="relative flex items-center justify-center overflow-hidden px-6 py-12 lg:flex-1 lg:py-16">
+          <DotPattern className="opacity-50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background" />
+          <div className="relative z-10 w-full max-w-[400px]">
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <LiveSyncPill />
+              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                <ShieldCheck className="size-3.5 text-emerald-500" aria-hidden="true" />
+                End-to-End Encrypted
+              </span>
+            </div>
+
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">
+              Welcome back
+            </h1>
+            <p className="mt-2 text-base text-muted-foreground">
+              Sign in to continue to SplitEase
+            </p>
+
             <form
-              onSubmit={handleSubmit(onSubmit)}
+              onSubmit={handleSubmit(onSubmit, () => shake())}
               noValidate
-              className="flex flex-col space-y-4"
+              className="mt-8 space-y-4"
             >
               {serverError && (
                 <div
-                  className="bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive"
+                  className="rounded-lg bg-danger-muted border border-danger/20 px-4 py-3 text-sm text-danger"
                   role="alert"
                 >
                   {serverError}
                 </div>
               )}
 
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="login-email">Email</Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  aria-invalid={errors.email ? true : undefined}
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-xs text-destructive" role="alert">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
+              <Input
+                label="Email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                className="h-11"
+                error={errors.email?.message}
+                {...register("email")}
+              />
 
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="login-password">Password</Label>
+              <PasswordField
+                label="Password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                error={errors.password?.message}
+                rightLabel={
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-foreground hover:opacity-70 transition-opacity"
+                    className="text-sm text-foreground transition-opacity hover:opacity-70"
                   >
                     Forgot password?
                   </Link>
-                </div>
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  aria-invalid={errors.password ? true : undefined}
-                  {...register("password")}
-                />
-                {errors.password && (
-                  <p className="text-xs text-destructive" role="alert">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
+                }
+                {...register("password")}
+              />
+
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm text-muted-foreground">
+                <Checkbox defaultChecked />
+                <span>Remember this device for 30 days</span>
+              </label>
 
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-primary px-6 h-11 text-primary-foreground font-sans"
+                fullWidth
+                size="lg"
+                loading={isSubmitting}
+                icon={<ArrowRight />}
+                iconPosition="right"
+                className="rounded-lg"
               >
-                {isSubmitting ? (
-                  <Loader2 className="animate-spin shrink-0" size={16} />
-                ) : (
-                  "Sign in"
-                )}
+                Sign in
               </Button>
             </form>
 
-            <p className="text-sm text-muted-foreground text-center mt-4">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="text-foreground hover:opacity-70 transition-opacity"
-              >
-                Create account
-              </Link>
-            </p>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+            <div className="my-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs text-muted-foreground">
+                  <span className="bg-background px-3">Or continue with</span>
+                </div>
+              </div>
+            </div>
 
-      {/* Terms and Privacy Policy - Bottom aligned */}
-      <div className="text-center mt-auto">
-        <p className="font-sans text-xs text-[#878787]">
-          By signing in you agree to our{" "}
-          <Link
-            href="/terms"
-            className="text-[#878787] hover:text-foreground transition-colors underline"
-          >
-            Terms of service
-          </Link>{" "}
-          &{" "}
-          <Link
-            href="/privacy"
-            className="text-[#878787] hover:text-foreground transition-colors underline"
-          >
-            Privacy policy
-          </Link>
-        </p>
-      </div>
+            <div className="mb-4">
+              <SocialLogin variant="split" />
+            </div>
+
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+              <BadgeCheck className="size-3.5" aria-hidden="true" />
+              Trusted by 1M+ users · SOC-2 Type II
+            </p>
+          </div>
+        </section>
+
+        <aside className="hidden w-full border-l border-border bg-zinc-50/75 dark:bg-zinc-900/40 lg:block lg:w-[480px] xl:w-[520px]">
+          <WorkspacePreview variant="home" />
+        </aside>
+      </main>
+
+      <AuthFooter
+        left={
+          <span>
+            SplitEase <span aria-hidden="true">•</span> © 2025
+          </span>
+        }
+        right={
+          <>
+            <FooterLink href="/privacy">Privacy Policy</FooterLink>
+            <FooterLink href="/terms">Terms of Service</FooterLink>
+            <FooterLink href="/security">Security</FooterLink>
+            <FooterLink href="/help">Help Center</FooterLink>
+          </>
+        }
+      />
     </>
   );
 }
