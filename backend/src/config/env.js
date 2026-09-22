@@ -1,8 +1,35 @@
 require("dotenv").config();
 
+const nodeEnv = process.env.NODE_ENV || "development";
+
+const jwtSecret = process.env.JWT_SECRET || "";
+
+if (nodeEnv === "production" && !jwtSecret.trim()) {
+  throw new Error(
+    "JWT_SECRET is required in production. Set JWT_SECRET to a non-empty secret before starting the server.",
+  );
+}
+
+const corsOriginRaw = process.env.CORS_ORIGIN;
+
+const corsOrigin =
+  corsOriginRaw && corsOriginRaw.trim()
+    ? corsOriginRaw.split(",").map((origin) => origin.trim())
+    : ["http://localhost:3000"];
+
+if (nodeEnv === "production") {
+  const isExplicitlySet = Boolean(corsOriginRaw && corsOriginRaw.trim());
+  const hasValidOrigin = corsOrigin.some((origin) => origin.length > 0);
+  if (!isExplicitlySet || !hasValidOrigin) {
+    throw new Error(
+      "CORS_ORIGIN is required in production. Set CORS_ORIGIN to a non-empty, comma-separated list of allowed origins before starting the server.",
+    );
+  }
+}
+
 const env = {
   port: parseInt(process.env.PORT, 10) || 5000,
-  nodeEnv: process.env.NODE_ENV || "development",
+  nodeEnv,
 
   db: {
     host: process.env.DB_HOST || "localhost",
@@ -13,14 +40,12 @@ const env = {
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET || "",
+    secret: jwtSecret,
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   },
 
   cors: {
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-      : ["http://localhost:3000"],
+    origin: corsOrigin,
   },
 };
 

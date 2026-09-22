@@ -6,10 +6,7 @@ const { parsePagination } = require("../utils/pagination.utils");
 const getGroupActivities = asyncHandler(async (req, res) => {
   const { page, limit } = parsePagination(req.query);
 
-  const result = await activityService.getGroupActivities(
-    req.params.groupId,
-    { page, limit }
-  );
+  const result = await activityService.getGroupActivities(req.params.groupId, { page, limit });
 
   return res.status(HTTP_STATUSES.OK).json({
     success: true,

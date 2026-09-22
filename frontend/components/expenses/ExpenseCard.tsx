@@ -6,25 +6,27 @@ import {
   Badge,
   IconButton,
 } from "@/components/ui";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Eye } from "lucide-react";
 import { formatCurrency, formatDate, getSplitLabel } from "@/lib/selectors";
 import { ExpenseReactions } from "./ExpenseReactions";
 import type { Expense } from "@/types";
-
-export { ExpenseReactions };
 
 interface ExpenseCardProps {
   expense: Expense;
   currentUserId?: string;
   onEdit: () => void;
   onDelete: () => void;
+  onView?: () => void;
 }
+
+export { ExpenseReactions };
 
 export function ExpenseCard({
   expense,
   currentUserId,
   onEdit,
   onDelete,
+  onView,
 }: ExpenseCardProps) {
   return (
     <Card>
@@ -39,6 +41,14 @@ export function ExpenseCard({
             </Badge>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            {onView && (
+              <IconButton
+                icon={<Eye />}
+                aria-label={`View expense ${expense.description}`}
+                size="sm"
+                onClick={onView}
+              />
+            )}
             <IconButton
               icon={<Pencil />}
               aria-label={`Edit expense ${expense.description}`}
@@ -76,6 +86,7 @@ interface ExpenseTableRowProps {
   currentUserId?: string;
   onEdit: () => void;
   onDelete: () => void;
+  onView?: () => void;
 }
 
 export function ExpenseTableRow({
@@ -83,6 +94,7 @@ export function ExpenseTableRow({
   currentUserId,
   onEdit,
   onDelete,
+  onView,
 }: ExpenseTableRowProps) {
   const splitLabel = getSplitLabel(expense);
 
@@ -119,6 +131,14 @@ export function ExpenseTableRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center justify-end gap-1">
+          {onView && (
+            <IconButton
+              icon={<Eye />}
+              aria-label={`View expense ${expense.description}`}
+              size="sm"
+              onClick={onView}
+            />
+          )}
           <IconButton
             icon={<Pencil />}
             aria-label={`Edit expense ${expense.description}`}

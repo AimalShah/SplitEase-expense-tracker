@@ -161,7 +161,6 @@ erDiagram
     }
     
     const sourceLabel = assoc.alias ? ` "${assoc.alias}"` : '';
-    const targetLabel = '';
     
     if (assoc.type === 'many-to-many') {
       mermaid += `    ${assoc.source.toUpperCase()} ${notation} ${assoc.through.toUpperCase()} : "${assoc.alias}"\n`;

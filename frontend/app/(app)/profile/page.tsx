@@ -9,6 +9,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useDashboardSummary } from "@/hooks/useDashboard";
 import { ProfilePageSkeleton } from "@/components/skeletons";
 import { formatCurrency, formatDate } from "@/lib/selectors";
+import { LogoutConfirmationDialog } from "@/components/shared/LogoutConfirmationDialog";
 import {
   TrendingUp,
   TrendingDown,
@@ -50,12 +51,10 @@ export default function ProfilePage() {
 
   const currentTheme = (theme as ThemePreference) || "system";
 
+  const [logoutOpen, setLogoutOpen] = useState(false);
+
   const handleLogout = () => {
-    logout.mutate(undefined, {
-      onSettled: () => {
-        router.push("/login");
-      },
-    });
+    logout.mutate();
   };
 
   const tag = user ? `@${user.name.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "@user";
@@ -555,7 +554,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleLogout}
+              onClick={() => setLogoutOpen(true)}
               className="px-3.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-lg transition-colors"
             >
               Log out
@@ -579,6 +578,16 @@ export default function ProfilePage() {
           <span className="hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer">Security</span>
         </div>
       </div>
+
+      <LogoutConfirmationDialog
+        open={logoutOpen}
+        onClose={() => {
+          if (logout.isPending) return;
+          setLogoutOpen(false);
+        }}
+        onConfirm={handleLogout}
+        loading={logout.isPending}
+      />
     </div>
   );
 }

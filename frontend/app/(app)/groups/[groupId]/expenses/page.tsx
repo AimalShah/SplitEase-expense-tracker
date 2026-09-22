@@ -12,6 +12,7 @@ import { CreateExpenseModal } from "@/components/expenses/CreateExpenseModal";
 import { EditExpenseModal } from "@/components/expenses/EditExpenseModal";
 import { ExpenseReactions } from "@/components/expenses/ExpenseReactions";
 import { GroupExpensesSkeleton } from "@/components/skeletons";
+import { ViewExpenseModal } from "@/components/expenses/ViewExpenseModal";
 import {
   Button,
   ErrorState,
@@ -28,6 +29,7 @@ import {
   Filter,
   Pencil,
   Trash2,
+  Eye,
   ShoppingCart,
   Utensils,
   Wifi,
@@ -102,6 +104,7 @@ export default function ExpensesPage({ params }: ExpensesPageProps) {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
+  const [viewing, setViewing] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<Expense | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -416,6 +419,14 @@ export default function ExpensesPage({ params }: ExpensesPageProps) {
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
+                        onClick={() => setViewing(expense)}
+                        aria-label={`View ${expense.description}`}
+                        className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+                      >
+                        <Eye className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setEditing(expense)}
                         aria-label={`Edit ${expense.description}`}
                         className="p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
@@ -495,6 +506,13 @@ export default function ExpensesPage({ params }: ExpensesPageProps) {
         onClose={() => setEditing(null)}
         groupId={groupId}
         expense={editing}
+      />
+
+      <ViewExpenseModal
+        open={viewing !== null}
+        onClose={() => setViewing(null)}
+        groupId={groupId}
+        expense={viewing}
       />
 
       <ConfirmDialog

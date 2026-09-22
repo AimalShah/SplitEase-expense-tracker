@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useLogout } from "@/hooks/mutations/useLogout";
+import { LogoutConfirmationDialog } from "@/components/shared/LogoutConfirmationDialog";
 import { SettingsPageSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/utils/cn";
@@ -63,6 +64,8 @@ export default function SettingsPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -362,7 +365,7 @@ export default function SettingsPage() {
                     variant="danger"
                     size="sm"
                     icon={<LogOut />}
-                    onClick={handleLogout}
+                    onClick={() => setLogoutOpen(true)}
                     loading={logout.isPending}
                   >
                     Log out of session
@@ -463,7 +466,7 @@ export default function SettingsPage() {
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={handleLogout}
+                  onClick={() => setLogoutOpen(true)}
                   loading={logout.isPending}
                 >
                   Log out
@@ -473,6 +476,16 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      <LogoutConfirmationDialog
+        open={logoutOpen}
+        onClose={() => {
+          if (logout.isPending) return;
+          setLogoutOpen(false);
+        }}
+        onConfirm={handleLogout}
+        loading={logout.isPending}
+      />
     </div>
   );
 }

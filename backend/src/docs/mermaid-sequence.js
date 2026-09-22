@@ -16,7 +16,6 @@ function generateSequenceDiagrams(swaggerSpec) {
       if (typeof operation !== 'object' || !operation.operationId) continue;
       
       const tag = operation.tags?.[0] || 'Default';
-      const summary = operation.summary || operation.operationId;
       
       const diagramKey = `${tag}-${operation.operationId}`;
       diagrams[diagramKey] = generateSequenceDiagram(endpoint, method, operation, tag);

@@ -114,13 +114,11 @@ describe("POST /api/groups/:groupId/payments", () => {
 // ============================================================
 describe("Unauthenticated payment", () => {
   it("should return 401 without token", async () => {
-    const res = await request(app)
-      .post(`/api/groups/${group1.group_id}/payments`)
-      .send({
-        paid_to: userA.user_id,
-        amount: 30,
-        payment_date: "2026-08-20",
-      });
+    const res = await request(app).post(`/api/groups/${group1.group_id}/payments`).send({
+      paid_to: userA.user_id,
+      amount: 30,
+      payment_date: "2026-08-20",
+    });
 
     expect(res.status).toBe(401);
   });
@@ -498,13 +496,11 @@ describe("Expense balance regression", () => {
 // ============================================================
 describe("Auth endpoints regression", () => {
   it("should still support signup", async () => {
-    const res = await request(app)
-      .post("/api/auth/signup")
-      .send({
-        name: "New User",
-        email: "newuser@test.com",
-        password: "Test1234!",
-      });
+    const res = await request(app).post("/api/auth/signup").send({
+      name: "New User",
+      email: "newuser@test.com",
+      password: "Test1234!",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.data.token).toBeDefined();
@@ -520,9 +516,7 @@ describe("Auth endpoints regression", () => {
   });
 
   it("should still support /me", async () => {
-    const res = await request(app)
-      .get("/api/auth/me")
-      .set("Authorization", `Bearer ${tokenA}`);
+    const res = await request(app).get("/api/auth/me").set("Authorization", `Bearer ${tokenA}`);
 
     expect(res.status).toBe(200);
     expect(res.body.data.user.email).toBe("anas@test.com");
@@ -614,10 +608,7 @@ describe("Balance consistency after payments", () => {
 
     expect(res.status).toBe(200);
 
-    const totalBalance = res.body.data.balances.reduce(
-      (sum, b) => sum + b.balance,
-      0
-    );
+    const totalBalance = res.body.data.balances.reduce((sum, b) => sum + b.balance, 0);
     expect(totalBalance).toBe(0);
   });
 
@@ -657,10 +648,7 @@ describe("Balance consistency after payments", () => {
 
     expect(res.status).toBe(200);
 
-    const totalBalance = res.body.data.balances.reduce(
-      (sum, b) => sum + b.balance,
-      0
-    );
+    const totalBalance = res.body.data.balances.reduce((sum, b) => sum + b.balance, 0);
     expect(totalBalance).toBe(0);
 
     const balancesMap = {};
@@ -682,8 +670,7 @@ describe("Balance consistency after payments", () => {
 // ============================================================
 describe("Payment history auth", () => {
   it("should return 401 for unauthenticated payment history access", async () => {
-    const res = await request(app)
-      .get(`/api/groups/${group1.group_id}/payments`);
+    const res = await request(app).get(`/api/groups/${group1.group_id}/payments`);
 
     expect(res.status).toBe(401);
   });
@@ -723,5 +710,110 @@ describe("Payment direction validation", () => {
       });
 
     expect(res.status).toBe(400);
+  });
+});
+
+// ============================================================
+// TEST: Overpayment prevention - a payment cannot exceed the payer's
+// outstanding (net) balance
+// ============================================================
+describe("Payment overpayment prevention", () => {
+  // Creates a 90 expense on group1 paid by A and split 3 ways, giving B a net
+  // balance of -30 (outstanding 30).
+  const createOwingExpense = async () => {
+    await request(app)
+      .post(`/api/groups/${group1.group_id}/expenses`)
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({
+        amount: 90,
+        description: "Dinner",
+        paid_by: userA.user_id,
+        participant_ids: [userA.user_id, userB.user_id, userC.user_id],
+        expense_date: "2026-08-20",
+      });
+  };
+
+  it("should allow a partial payment up to the outstanding balance", async () => {
+    await createOwingExpense();
+
+    const res = await request(app)
+      .post(`/api/groups/${group1.group_id}/payments`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({
+        paid_to: userA.user_id,
+        amount: 25,
+        payment_date: "2026-08-20",
+      });
+
+    expect(res.status).toBe(201);
+  });
+
+  it("should allow an exact payment equal to the outstanding balance", async () => {
+    await createOwingExpense();
+
+    const res = await request(app)
+      .post(`/api/groups/${group1.group_id}/payments`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({
+        paid_to: userA.user_id,
+        amount: 30,
+        payment_date: "2026-08-20",
+      });
+
+    expect(res.status).toBe(201);
+  });
+
+  it("should reject a payment exceeding the outstanding balance (overpayment)", async () => {
+    await createOwingExpense();
+
+    const res = await request(app)
+      .post(`/api/groups/${group1.group_id}/payments`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({
+        paid_to: userA.user_id,
+        amount: 30.01,
+        payment_date: "2026-08-20",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe("Payment amount cannot exceed your outstanding balance");
+  });
+
+  it("should not create a Payment record when overpayment is rejected", async () => {
+    await createOwingExpense();
+
+    await request(app)
+      .post(`/api/groups/${group1.group_id}/payments`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({
+        paid_to: userA.user_id,
+        amount: 30.01,
+        payment_date: "2026-08-20",
+      });
+
+    const payments = await Payment.findAll({
+      where: { group_id: group1.group_id },
+    });
+    expect(payments).toHaveLength(0);
+  });
+
+  it("should not create a PAYMENT_CREATED activity-log entry on overpayment", async () => {
+    await createOwingExpense();
+
+    await request(app)
+      .post(`/api/groups/${group1.group_id}/payments`)
+      .set("Authorization", `Bearer ${tokenB}`)
+      .send({
+        paid_to: userA.user_id,
+        amount: 30.01,
+        payment_date: "2026-08-20",
+      });
+
+    const logs = await ActivityLog.findAll({
+      where: { group_id: group1.group_id },
+    });
+    const paymentLogs = logs.filter((log) => log.action === "PAYMENT_CREATED");
+    expect(paymentLogs).toHaveLength(0);
   });
 });
